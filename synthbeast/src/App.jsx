@@ -10,7 +10,7 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      <OscilloscopePanel />
+      <OscilloscopePanel audio={audio} />
       <ControlsPanel />
       <LoopStation />
       <KeyboardStrip audio={audio} />

@@ -1,5 +1,80 @@
 .panel {
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #333;
+  background: #0d0d0d;
+  padding: 16px;
+  box-sizing: border-box;
+  border-bottom: 3px solid #222;
+}
+
+/* Side-by-side oscilloscope screens */
+.screens {
+  display: flex;
+  gap: 16px;
+}
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Dim the whole screen when osc 2 is off */
+.screenOff {
+  opacity: 0.5;
+}
+
+/* Header row: label + toggle */
+.screenLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #4a8fa8;
+  text-transform: uppercase;
+  padding: 0 2px;
+}
+
+/* Canvas — fills the screen area, fixed height */
+.canvas {
+  display: block;
+  width: 100%;
+  height: 160px;
+  border: 1px solid #1a3a4a;
+  border-radius: 3px;
+  /* Slight inner shadow to sell the CRT bezel */
+  box-shadow: inset 0 0 12px #000, 0 0 4px #001a26;
+}
+
+/* Toggle button */
+.toggleBtn {
+  font-size: 9px;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+  cursor: pointer;
+  background: transparent;
+  transition: color 120ms, border-color 120ms, box-shadow 120ms;
+  line-height: 1.6;
+}
+
+.toggleOn {
+  color: #00c8ff;
+  border-color: #00c8ff;
+  box-shadow: 0 0 6px #007acc44;
+}
+
+.toggleOff {
+  color: #334455;
+  border-color: #334455;
+}
+
+.toggleBtn:hover {
+  opacity: 0.8;
 }

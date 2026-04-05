@@ -1,5 +1,93 @@
 .strip {
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #333;
+  background: #1a1a1a;
+  padding: 16px 0 20px;
+  display: flex;
+  justify-content: center;
+  border-top: 3px solid #333;
+}
+
+/* Relative container so black keys can be absolutely placed over white keys */
+.keyboard {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  height: 140px;
+  user-select: none;
+}
+
+/* ── White keys ── */
+.whiteKey {
+  position: relative;
+  width: 52px;
+  height: 140px;
+  background: #f0ead6;
+  border: 2px solid #555;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+  gap: 2px;
+  transition: background 60ms ease;
+  z-index: 1;
+}
+
+.whiteKey:hover {
+  background: #e8e0c8;
+}
+
+.whiteActive {
+  background: #7ecfff !important;
+}
+
+/* ── Black keys ── */
+.blackKey {
+  position: absolute;
+  top: 0;
+  width: 32px;
+  height: 86px;
+  background: #1c1c1c;
+  border: 2px solid #000;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 6px;
+  z-index: 2;
+  transition: background 60ms ease;
+}
+
+.blackKey:hover {
+  background: #2e2e2e;
+}
+
+.blackActive {
+  background: #0a8fd4 !important;
+}
+
+/* ── Labels ── */
+.noteLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #444;
+  letter-spacing: 0.05em;
+}
+
+.keyHint {
+  font-size: 9px;
+  color: #888;
+  font-family: monospace;
+}
+
+.blackKey .keyHint {
+  color: #666;
 }

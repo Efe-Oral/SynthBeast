@@ -47,6 +47,9 @@ export default function useAudioEngine() {
     };
   }, []);
 
+  // osc2 can be toggled off; osc1 is always active
+  const osc2EnabledRef = useRef(true);
+
   const startOsc = useCallback(async (index) => {
     await Tone.start(); // unlock AudioContext on first user gesture
     const e = engineRef.current;
@@ -66,6 +69,38 @@ export default function useAudioEngine() {
       osc.stop();
       console.log(`[AudioEngine] Oscillator ${index + 1} stopped`);
     }
+  }, []);
+
+  // Play a note on all active oscillators. note: Tone.js frequency string e.g. 'C4', 'A#3', or Hz number.
+  const playNote = useCallback(async (note) => {
+    await Tone.start();
+    const e = engineRef.current;
+    if (!e) return;
+    e.oscs[0].frequency.value = note;
+    if (e.oscs[0].state === 'stopped') e.oscs[0].start();
+
+    if (osc2EnabledRef.current) {
+      e.oscs[1].frequency.value = note;
+      if (e.oscs[1].state === 'stopped') e.oscs[1].start();
+    }
+    console.log(`[AudioEngine] playNote: ${note}`);
+  }, []);
+
+  // Stop all active oscillators (called when last key is released)
+  const releaseNote = useCallback(() => {
+    const e = engineRef.current;
+    if (!e) return;
+    e.oscs.forEach((osc) => {
+      if (osc.state === 'started') osc.stop();
+    });
+    console.log('[AudioEngine] releaseNote');
+  }, []);
+
+  const setOsc2Enabled = useCallback((enabled) => {
+    osc2EnabledRef.current = enabled;
+    const e = engineRef.current;
+    if (!e) return;
+    if (!enabled && e.oscs[1].state === 'started') e.oscs[1].stop();
   }, []);
 
   // value: 0–1 linear gain
@@ -102,6 +137,9 @@ export default function useAudioEngine() {
   return {
     startOsc,
     stopOsc,
+    playNote,
+    releaseNote,
+    setOsc2Enabled,
     setVolume,
     setFrequency,
     setDetune,

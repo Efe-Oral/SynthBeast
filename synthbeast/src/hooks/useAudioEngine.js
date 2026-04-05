@@ -131,6 +131,53 @@ export default function useAudioEngine() {
     e.oscs[index].type = type;
   }, []);
 
+  /**
+   * Apply an arbitrary one-period waveform to an oscillator.
+   * Computes the full DFT (real + imaginary) of the time-domain samples
+   * and stores the resulting PeriodicWave on Tone's internal _wave field so it
+   * survives start/stop cycles automatically.
+   *
+   * @param {number} index  0 or 1
+   * @param {Float32Array} samples  normalised time-domain values in [-1, 1]
+   */
+  const setCustomWaveform = useCallback((index, samples) => {
+    const e = engineRef.current;
+    if (!e) return;
+
+    const N = samples.length;
+    const numHarmonics = Math.min(256, Math.floor(N / 2));
+    const real = new Float32Array(numHarmonics + 1); // real[0] = DC, always 0
+    const imag = new Float32Array(numHarmonics + 1);
+
+    // Full DFT — both cosine (real) and sine (imag) components
+    for (let k = 1; k <= numHarmonics; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < N; n++) {
+        const angle = (2 * Math.PI * k * n) / N;
+        re += samples[n] * Math.cos(angle);
+        im += samples[n] * Math.sin(angle);
+      }
+      real[k] = (2 / N) * re;
+      imag[k] = (2 / N) * im;
+    }
+
+    const rawCtx = Tone.getContext().rawContext;
+    const wave = rawCtx.createPeriodicWave(real, imag);
+
+    // Reach into Tone.Oscillator's internals to set _wave directly.
+    // _wave is checked in Oscillator._start() before falling back to _type,
+    // so it persists across every start/stop cycle automatically.
+    const innerOsc = e.oscs[index]._oscillator; // Tone.Oscillator
+    if (innerOsc) {
+      innerOsc._wave = wave;
+      innerOsc._partials = [];      // prevent stale partials from overriding
+      innerOsc._partialCount = 0;
+      if (innerOsc._oscillator) {   // native OscillatorNode (non-null while running)
+        innerOsc._oscillator.setPeriodicWave(wave);
+      }
+    }
+  }, []);
+
   // Returns the two native AnalyserNodes (may be null before mount)
   const getAnalysers = useCallback(() => analyserRefs.current, []);
 
@@ -144,6 +191,7 @@ export default function useAudioEngine() {
     setFrequency,
     setDetune,
     setWaveform,
+    setCustomWaveform,
     getAnalysers,
   };
 }

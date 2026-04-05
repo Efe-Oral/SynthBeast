@@ -1,5 +1,12 @@
 .panel {
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #333;
+  background: #0d0d0d;
+  padding: 16px;
+  box-sizing: border-box;
+  border-bottom: 3px solid #222;
+}
+
+.row {
+  display: flex;
+  gap: 16px;
 }

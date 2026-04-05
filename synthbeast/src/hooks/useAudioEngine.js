@@ -1,16 +1,37 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import * as Tone from 'tone';
 
+const DEFAULT_EQ_BANDS = [
+  { frequency: 80,    gain: 0 },
+  { frequency: 240,   gain: 0 },
+  { frequency: 2400,  gain: 0 },
+  { frequency: 8000,  gain: 0 },
+  { frequency: 16000, gain: 0 },
+];
+
 export default function useAudioEngine() {
-  const engineRef = useRef(null);
-  const analyserRefs = useRef([null, null]);
+  const engineRef      = useRef(null);
+  const analyserRefs   = useRef([null, null]);
+  // Stores the last Float32Array samples drawn per oscillator (needed for save)
+  const customWaveRefs = useRef([null, null]);
+
+  // EQ bands live here as React state so EqPanel is fully controlled and
+  // save/load has a single source of truth.
+  const [eqBands, setEqBandsState] = useState(DEFAULT_EQ_BANDS);
 
   useEffect(() => {
-    // Shared filter chain -> destination
-    const filter = new Tone.Filter({ frequency: 8000, type: 'lowpass' });
-    filter.toDestination();
+    // 5-band EQ chain → Destination
+    const eqFilters = [
+      new Tone.Filter({ frequency: 80,    type: 'lowshelf',  gain: 0, Q: 0.7,  rolloff: -12 }),
+      new Tone.Filter({ frequency: 240,   type: 'peaking',   gain: 0, Q: 1.5,  rolloff: -12 }),
+      new Tone.Filter({ frequency: 2400,  type: 'peaking',   gain: 0, Q: 1.5,  rolloff: -12 }),
+      new Tone.Filter({ frequency: 8000,  type: 'peaking',   gain: 0, Q: 1.5,  rolloff: -12 }),
+      new Tone.Filter({ frequency: 16000, type: 'highshelf', gain: 0, Q: 0.7,  rolloff: -12 }),
+    ];
+    for (let i = 0; i < eqFilters.length - 1; i++) eqFilters[i].connect(eqFilters[i + 1]);
+    eqFilters[eqFilters.length - 1].toDestination();
 
-    // Per-oscillator: OmniOscillator -> Gain -> filter
+    // Per-oscillator: OmniOscillator → Gain → EQ chain
     const oscs = [
       new Tone.OmniOscillator({ frequency: 440, type: 'sawtooth' }),
       new Tone.OmniOscillator({ frequency: 440, type: 'sawtooth' }),
@@ -22,78 +43,63 @@ export default function useAudioEngine() {
 
     oscs[0].connect(gains[0]);
     oscs[1].connect(gains[1]);
-    gains[0].connect(filter);
-    gains[1].connect(filter);
+    gains[0].connect(eqFilters[0]);
+    gains[1].connect(eqFilters[0]);
 
     // Tap a native AnalyserNode off each gain output for oscilloscope use
     const rawCtx = Tone.getContext().rawContext;
     const analysers = oscs.map((_, i) => {
       const analyser = rawCtx.createAnalyser();
       analyser.fftSize = 2048;
-      // gains[i].output is the native GainNode — fan out to analyser
       gains[i].output.connect(analyser);
       return analyser;
     });
 
     analyserRefs.current = analysers;
-    engineRef.current = { oscs, gains, filter };
+    engineRef.current = { oscs, gains, eqFilters };
 
     return () => {
       oscs.forEach((o) => o.dispose());
       gains.forEach((g) => g.dispose());
-      filter.dispose();
+      eqFilters.forEach((f) => f.dispose());
       analyserRefs.current = [null, null];
       engineRef.current = null;
     };
   }, []);
 
-  // osc2 can be toggled off; osc1 is always active
   const osc2EnabledRef = useRef(true);
 
   const startOsc = useCallback(async (index) => {
-    await Tone.start(); // unlock AudioContext on first user gesture
+    await Tone.start();
     const e = engineRef.current;
     if (!e) return;
     const osc = e.oscs[index];
-    if (osc.state === 'stopped') {
-      osc.start();
-      console.log(`[AudioEngine] Oscillator ${index + 1} started — state: ${osc.state}`);
-    }
+    if (osc.state === 'stopped') osc.start();
   }, []);
 
   const stopOsc = useCallback((index) => {
     const e = engineRef.current;
     if (!e) return;
     const osc = e.oscs[index];
-    if (osc.state === 'started') {
-      osc.stop();
-      console.log(`[AudioEngine] Oscillator ${index + 1} stopped`);
-    }
+    if (osc.state === 'started') osc.stop();
   }, []);
 
-  // Play a note on all active oscillators. note: Tone.js frequency string e.g. 'C4', 'A#3', or Hz number.
   const playNote = useCallback(async (note) => {
     await Tone.start();
     const e = engineRef.current;
     if (!e) return;
     e.oscs[0].frequency.value = note;
     if (e.oscs[0].state === 'stopped') e.oscs[0].start();
-
     if (osc2EnabledRef.current) {
       e.oscs[1].frequency.value = note;
       if (e.oscs[1].state === 'stopped') e.oscs[1].start();
     }
-    console.log(`[AudioEngine] playNote: ${note}`);
   }, []);
 
-  // Stop all active oscillators (called when last key is released)
   const releaseNote = useCallback(() => {
     const e = engineRef.current;
     if (!e) return;
-    e.oscs.forEach((osc) => {
-      if (osc.state === 'started') osc.stop();
-    });
-    console.log('[AudioEngine] releaseNote');
+    e.oscs.forEach((osc) => { if (osc.state === 'started') osc.stop(); });
   }, []);
 
   const setOsc2Enabled = useCallback((enabled) => {
@@ -103,53 +109,38 @@ export default function useAudioEngine() {
     if (!enabled && e.oscs[1].state === 'started') e.oscs[1].stop();
   }, []);
 
-  // value: 0–1 linear gain
   const setVolume = useCallback((index, value) => {
     const e = engineRef.current;
     if (!e) return;
     e.gains[index].gain.value = Math.max(0, Math.min(1, value));
   }, []);
 
-  // freq in Hz or note name (e.g. 'C4')
   const setFrequency = useCallback((index, freq) => {
     const e = engineRef.current;
     if (!e) return;
     e.oscs[index].frequency.value = freq;
   }, []);
 
-  // cents offset, positive or negative
   const setDetune = useCallback((index, cents) => {
     const e = engineRef.current;
     if (!e) return;
     e.oscs[index].detune.value = cents;
   }, []);
 
-  // type: 'sawtooth' | 'square' | 'sine' | 'triangle' (or Tone prefixed variants)
   const setWaveform = useCallback((index, type) => {
     const e = engineRef.current;
     if (!e) return;
     e.oscs[index].type = type;
   }, []);
 
-  /**
-   * Apply an arbitrary one-period waveform to an oscillator.
-   * Computes the full DFT (real + imaginary) of the time-domain samples
-   * and stores the resulting PeriodicWave on Tone's internal _wave field so it
-   * survives start/stop cycles automatically.
-   *
-   * @param {number} index  0 or 1
-   * @param {Float32Array} samples  normalised time-domain values in [-1, 1]
-   */
-  const setCustomWaveform = useCallback((index, samples) => {
+  // Shared DFT logic used by both setCustomWaveform and restoreProjectState
+  function applyPeriodicWave(index, samples) {
     const e = engineRef.current;
     if (!e) return;
-
     const N = samples.length;
     const numHarmonics = Math.min(256, Math.floor(N / 2));
-    const real = new Float32Array(numHarmonics + 1); // real[0] = DC, always 0
+    const real = new Float32Array(numHarmonics + 1);
     const imag = new Float32Array(numHarmonics + 1);
-
-    // Full DFT — both cosine (real) and sine (imag) components
     for (let k = 1; k <= numHarmonics; k++) {
       let re = 0, im = 0;
       for (let n = 0; n < N; n++) {
@@ -160,25 +151,103 @@ export default function useAudioEngine() {
       real[k] = (2 / N) * re;
       imag[k] = (2 / N) * im;
     }
-
     const rawCtx = Tone.getContext().rawContext;
     const wave = rawCtx.createPeriodicWave(real, imag);
-
-    // Reach into Tone.Oscillator's internals to set _wave directly.
-    // _wave is checked in Oscillator._start() before falling back to _type,
-    // so it persists across every start/stop cycle automatically.
-    const innerOsc = e.oscs[index]._oscillator; // Tone.Oscillator
+    const innerOsc = e.oscs[index]._oscillator;
     if (innerOsc) {
       innerOsc._wave = wave;
-      innerOsc._partials = [];      // prevent stale partials from overriding
+      innerOsc._partials = [];
       innerOsc._partialCount = 0;
-      if (innerOsc._oscillator) {   // native OscillatorNode (non-null while running)
-        innerOsc._oscillator.setPeriodicWave(wave);
-      }
+      if (innerOsc._oscillator) innerOsc._oscillator.setPeriodicWave(wave);
     }
+  }
+
+  const setCustomWaveform = useCallback((index, samples) => {
+    customWaveRefs.current[index] = samples.slice(); // keep a copy for save
+    applyPeriodicWave(index, samples);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update one EQ band in the engine AND in React state
+  const setEqBand = useCallback((index, { frequency, gain }) => {
+    const e = engineRef.current;
+    if (!e) return;
+    e.eqFilters[index].frequency.value = frequency;
+    e.eqFilters[index].gain.value      = gain;
+    setEqBandsState((prev) => {
+      const next = [...prev];
+      next[index] = { frequency, gain };
+      return next;
+    });
   }, []);
 
-  // Returns the two native AnalyserNodes (may be null before mount)
+  const getEqResponse = useCallback((N = 200) => {
+    const e = engineRef.current;
+    if (!e) return null;
+    const combined = new Float32Array(N).fill(1);
+    for (const filter of e.eqFilters) {
+      const resp = filter.getFrequencyResponse(N);
+      for (let i = 0; i < N; i++) combined[i] *= resp[i];
+    }
+    const frequencies = new Float32Array(N);
+    for (let i = 0; i < N; i++) frequencies[i] = Math.pow(i / N, 2) * 19980 + 20;
+    return { magnitudes: combined, frequencies };
+  }, []);
+
+  // ── Project save/load ────────────────────────────────────────────────────────
+
+  /**
+   * Returns a plain-JS snapshot of all audio engine settings.
+   * customWave is stored as a plain Array (JSON-safe) so IndexedDB can clone it.
+   */
+  const getProjectState = useCallback(() => {
+    const e = engineRef.current;
+    if (!e) return null;
+    return {
+      oscillators: e.oscs.map((osc, i) => ({
+        type:       osc.type,
+        volume:     e.gains[i].gain.value,
+        frequency:  osc.frequency.value,
+        detune:     osc.detune.value,
+        customWave: customWaveRefs.current[i]
+          ? Array.from(customWaveRefs.current[i])
+          : null,
+      })),
+      eqBands: e.eqFilters.map((f) => ({
+        frequency: f.frequency.value,
+        gain:      f.gain.value,
+      })),
+    };
+  }, []);
+
+  /**
+   * Restores all audio engine settings from a previously saved snapshot.
+   */
+  const restoreProjectState = useCallback((state) => {
+    const e = engineRef.current;
+    if (!e || !state) return;
+
+    // Oscillators
+    (state.oscillators || []).forEach(({ type, volume, frequency, detune, customWave }, i) => {
+      if (type)       e.oscs[i].type                 = type;
+      if (volume != null) e.gains[i].gain.value       = volume;
+      if (frequency != null) e.oscs[i].frequency.value = frequency;
+      if (detune != null)    e.oscs[i].detune.value    = detune;
+      if (customWave) {
+        const samples = new Float32Array(customWave);
+        customWaveRefs.current[i] = samples;
+        applyPeriodicWave(i, samples);
+      }
+    });
+
+    // EQ
+    const bands = state.eqBands || [];
+    bands.forEach(({ frequency, gain }, i) => {
+      e.eqFilters[i].frequency.value = frequency;
+      e.eqFilters[i].gain.value      = gain;
+    });
+    if (bands.length) setEqBandsState(bands);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const getAnalysers = useCallback(() => analyserRefs.current, []);
 
   return {
@@ -192,6 +261,11 @@ export default function useAudioEngine() {
     setDetune,
     setWaveform,
     setCustomWaveform,
+    eqBands,
+    setEqBand,
+    getEqResponse,
+    getProjectState,
+    restoreProjectState,
     getAnalysers,
   };
 }

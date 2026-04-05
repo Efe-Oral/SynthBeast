@@ -23,6 +23,7 @@ export default function OscilloscopePanel({ audio }) {
 
   return (
     <div className={styles.panel}>
+      <div className={styles.panelLabel}>Oscilloscope</div>
       <div className={styles.screens}>
         <div className={styles.screen}>
           <div className={styles.screenLabel}>OSC 1</div>

@@ -1,5 +1,301 @@
+/* ── Loop Station ───────────────────────────────────────────────────────────── */
+/* Aesthetic: big red danger panel. Magenta/red palette.                       */
+
 .panel {
+  position: relative;
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #333;
+  background: linear-gradient(180deg, #120008 0%, #0e0006 100%);
+  padding: 14px 16px 18px;
+  box-sizing: border-box;
+
+  border-bottom: 4px solid #1a000a;
+}
+
+/* Rough magenta border */
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 4px solid var(--magenta);
+  filter: url(#rough);
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 40px rgba(255, 0, 60, 0.04);
+  pointer-events: none;
+}
+
+.panelLabel {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.18em;
+  color: var(--magenta);
+  text-shadow: 0 0 10px rgba(255, 0, 80, 0.5);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* ── RECORD button ─────────────────────────────────────────────────────────── */
+
+.recordBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 26px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.18em;
+  color: #ff2244;
+  background: #120006;
+  border: 3px solid #ff2244;
+  border-radius: 3px;
+  cursor: pointer;
+  min-width: 120px;
+  justify-content: center;
+
+  box-shadow:
+    0 0 10px rgba(255, 30, 60, 0.3),
+    inset 0 0 8px rgba(0, 0, 0, 0.8);
+
+  transition: background 120ms, box-shadow 120ms, color 120ms;
+  position: relative;
+}
+
+/* Rough border on the record button */
+.recordBtn::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 3px solid #ff2244;
+  filter: url(#rough);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.recordBtn:hover {
+  background: #1e000d;
+  box-shadow: 0 0 18px rgba(255, 30, 60, 0.55), inset 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+.recordBtn.recording {
+  color: #fff;
+  background: #cc0022;
+  border-color: #ff4466;
+  box-shadow: 0 0 22px rgba(255, 30, 60, 0.85), inset 0 0 8px rgba(0, 0, 0, 0.5);
+  animation: recPulse 1s ease-in-out infinite;
+}
+
+@keyframes recPulse {
+  0%, 100% { box-shadow: 0 0 22px rgba(255, 30, 60, 0.85), inset 0 0 8px rgba(0, 0, 0, 0.5); }
+  50%       { box-shadow: 0 0 38px rgba(255, 30, 60, 1.0),  inset 0 0 8px rgba(0, 0, 0, 0.5); }
+}
+
+.recordDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.recording .recordDot {
+  animation: dotBlink 0.8s step-end infinite;
+}
+
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Layer counter ──────────────────────────────────────────────────────────── */
+
+.counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+  background: #0e0005;
+  border: 1px solid #330018;
+  border-radius: 3px;
+  padding: 4px 10px;
+}
+
+.counterNum {
+  font-family: var(--font-display);
+  font-size: 32px;
+  letter-spacing: 0.05em;
+  color: var(--magenta);
+  text-shadow: 0 0 12px rgba(255, 0, 80, 0.6);
+  line-height: 1;
+}
+
+.counterLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #66002a;
+  text-transform: uppercase;
+}
+
+/* ── Status pill ────────────────────────────────────────────────────────────── */
+
+.status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #33664a;
+  background: #081410;
+  border: 1px solid #143322;
+  border-radius: 20px;
+  padding: 3px 12px;
+  text-transform: uppercase;
+  transition: color 150ms, border-color 150ms, background 150ms;
+}
+
+.status.statusRecording {
+  color: #ff4466;
+  background: #180008;
+  border-color: #660022;
+  box-shadow: 0 0 8px rgba(255, 0, 60, 0.3);
+}
+
+/* ── Export MP3 button ──────────────────────────────────────────────────────── */
+
+.exportBtn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  background: transparent;
+  border: 1px solid #004466;
+  border-radius: 3px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms, background 120ms;
+  white-space: nowrap;
+}
+
+.exportBtn:hover:not(:disabled) {
+  color: #fff;
+  border-color: var(--cyan);
+  background: #001a26;
+  box-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
+}
+
+.exportBtn.exporting {
+  color: #007aaa;
+  border-color: #003355;
+  cursor: default;
+}
+
+.exportBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Save / Load buttons ────────────────────────────────────────────────────── */
+
+.persistGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.persistBtn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #447755;
+  background: transparent;
+  border: 1px solid #1a3322;
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms, background 120ms;
+  white-space: nowrap;
+}
+
+.persistBtn:hover:not(:disabled) {
+  color: #88ffaa;
+  border-color: #44aa66;
+  box-shadow: 0 0 6px rgba(0, 255, 100, 0.2);
+}
+
+.persistBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.persistBtn.persistOk {
+  color: #44ff88;
+  border-color: #22aa55;
+  box-shadow: 0 0 6px rgba(0, 255, 100, 0.3);
+}
+
+.persistBtn.persistErr {
+  color: #ff4466;
+  border-color: #882233;
+}
+
+/* ── CLEAR ALL button ───────────────────────────────────────────────────────── */
+
+.clearBtn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #553322;
+  background: transparent;
+  border: 1px solid #331a11;
+  border-radius: 3px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+  margin-left: auto;
+}
+
+.clearBtn:hover:not(:disabled) {
+  color: var(--orange);
+  border-color: var(--orange);
+  box-shadow: 0 0 8px rgba(255, 100, 0, 0.3);
+}
+
+.clearBtn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* ── Export progress bar ────────────────────────────────────────────────────── */
+
+.progressTrack {
+  margin-top: 10px;
+  width: 100%;
+  height: 3px;
+  background: #1a0008;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 2px;
+  transition: width 200ms linear;
+  box-shadow: 0 0 6px var(--cyan);
 }

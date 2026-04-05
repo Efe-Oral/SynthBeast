@@ -1,15 +1,46 @@
+/* ── Oscilloscope Panel ─────────────────────────────────────────────────────── */
+/* Aesthetic: mad-scientist instrument bay. Thick rough border outside,         */
+/* but the screens themselves stay clean + clinical — the contrast element.     */
+
 .panel {
+  position: relative;
   width: 100%;
-  background: #0d0d0d;
-  padding: 16px;
+  background: linear-gradient(180deg, #0a0f14 0%, #060b10 100%);
+  padding: 14px 16px 18px;
   box-sizing: border-box;
-  border-bottom: 3px solid #222;
+
+  /* Thick bottom divider — the "chassis edge" */
+  border-bottom: 5px solid #0d1a22;
+}
+
+/* Rough cyan border frame */
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 4px solid var(--cyan);
+  filter: url(#rough);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Panel label */
+.panelLabel {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.18em;
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-left: 2px;
+  user-select: none;
 }
 
 /* Side-by-side oscilloscope screens */
 .screens {
   display: flex;
-  gap: 16px;
+  gap: 14px;
 }
 
 .screen {
@@ -21,7 +52,9 @@
 
 /* Dim the whole screen when osc 2 is off */
 .screenOff {
-  opacity: 0.5;
+  opacity: 0.35;
+  filter: saturate(0.2);
+  transition: opacity 300ms, filter 300ms;
 }
 
 /* Header row: label + toggle */
@@ -29,52 +62,73 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  font-family: monospace;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #4a8fa8;
+  letter-spacing: 0.18em;
+  color: #3a7a90;
   text-transform: uppercase;
-  padding: 0 2px;
+  padding: 0 3px;
 }
 
-/* Canvas — fills the screen area, fixed height */
+/* Canvas — the clean CRT screen */
 .canvas {
   display: block;
   width: 100%;
   height: 160px;
-  border: 1px solid #1a3a4a;
-  border-radius: 3px;
-  /* Slight inner shadow to sell the CRT bezel */
-  box-shadow: inset 0 0 12px #000, 0 0 4px #001a26;
+
+  /* Clean clinical look — sharp border, CRT bezel effect */
+  border: 2px solid #0d2a38;
+  border-radius: 2px;
+
+  /* Deep inset shadow sells the recessed screen */
+  box-shadow:
+    inset  0  0 20px #000,
+    inset  0  2px  6px rgba(0, 200, 255, 0.04),
+    0 0 0 1px #060d12,
+    0 0 8px rgba(0, 100, 150, 0.2);
+
+  /* Slight scanline overlay via gradient */
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.08) 3px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
 }
 
 /* Toggle button */
 .toggleBtn {
+  font-family: var(--font-mono);
   font-size: 9px;
-  font-family: monospace;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: 2px 8px;
+  letter-spacing: 0.12em;
+  padding: 2px 9px;
   border-radius: 2px;
   border: 1px solid currentColor;
   cursor: pointer;
   background: transparent;
-  transition: color 120ms, border-color 120ms, box-shadow 120ms;
-  line-height: 1.6;
+  transition: color 120ms, box-shadow 120ms, background 120ms;
+  line-height: 1.7;
 }
 
 .toggleOn {
-  color: #00c8ff;
-  border-color: #00c8ff;
-  box-shadow: 0 0 6px #007acc44;
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 7px rgba(0, 200, 255, 0.35);
+}
+
+.toggleOn:hover {
+  background: rgba(0, 200, 255, 0.08);
 }
 
 .toggleOff {
-  color: #334455;
-  border-color: #334455;
+  color: #2a4455;
+  border-color: #2a4455;
 }
 
-.toggleBtn:hover {
-  opacity: 0.8;
+.toggleOff:hover {
+  color: #4a6677;
+  border-color: #4a6677;
 }

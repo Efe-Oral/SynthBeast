@@ -24,8 +24,8 @@ const KEY_TO_NOTE = Object.fromEntries(KEYBOARD_MAP.map((e) => [e.key, e.note]))
 const WHITE_KEYS = KEYBOARD_MAP.filter((e) => !e.isBlack);
 const BLACK_KEYS = KEYBOARD_MAP.filter((e) => e.isBlack);
 
-const WHITE_KEY_W = 52; // px
-const BLACK_KEY_W = 32; // px
+const WHITE_KEY_W = 80; // px
+const BLACK_KEY_W = 50; // px
 
 // Position each black key: center it over the gap between adjacent white keys.
 // afterWhiteIndex = the white-key index immediately to the left of the gap.
@@ -94,6 +94,7 @@ export default function KeyboardStrip({ audio }) {
 
   return (
     <div className={styles.strip}>
+      <div className={styles.stripLabel}>Keyboard — QWERTY</div>
       <div className={styles.keyboard}>
         {/* White keys */}
         {WHITE_KEYS.map(({ note, key, label }) => {
